@@ -1,0 +1,83 @@
+---
+
+version: "3.5"
+
+x-airflow-common:
+  &airflow-common
+  build:
+    context: .
+    dockerfile: local_airflow/.Dockerfile
+  user: "${AIRFLOW_UID}:0"
+  env_file:
+    - local_airflow/common-airflow.env
+  volumes:
+    - ./local_airflow/dags:/opt/airflow/dags
+
+x-airflow_depends_on:
+  &airflow-depends-on
+  depends_on:
+    postgres:
+      condition: service_healthy
+    airflow-init:
+      condition: service_completed_successfully
+
+x-depends_on_database:
+  &depends-on-database
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  redis:
+    image: 'redis:3.2.10'
+    networks:
+      data-lake-network: 
+
+  scheduler:
+    <<: [*airflow-common,*airflow-depends-on]
+    container_name: airflow-scheduler
+    command: scheduler
+    restart: on-failure
+    networks:
+      data-lake-network: 
+    ports:
+      - "8793:8793"
+
+  airflow-webserver:
+    <<: [*airflow-common, *airflow-depends-on]
+    container_name: airflow-webserver
+    restart: always
+    command: webserver
+    networks:
+      data-lake-network: 
+    ports:
+      - "8088:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow-init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        mkdir -p /sources/logs /sources/dags /sources/plugins
+        chown -R "${AIRFLOW_UID}:0" /sources/{logs,dags,plugins}
+        exec /entrypoint airflow version
+    networks:
+      data-lake-network: 
+  worker:
+    <<: [*airflow-common,*airflow-depends-on]
+    container_name: airflow-worker
+    command: celery worker
+    restart: on-failure
+    networks:
+      data-lake-network: 
+
+
+networks:
+  data-lake-network: 
