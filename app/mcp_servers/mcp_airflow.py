@@ -73,5 +73,44 @@ async def trigger_dag(dag_id: str):
                                       method='post', json={})
 
 
+@mcp.tool()
+async def get_all_the_runs(dag_ids: str = None, start_date_gte: str = None,
+                           start_date_lte: str = None, states: str = None):
+    """
+   Retrieve filtered DAG runs across multiple DAG IDs with various criteria.
+   Args:
+       - dag_ids: Comma-separated list of DAG identifiers
+        (e.g., 'load_ticket_sales,transform_sales_aggregator').
+                Leave this parameter blank '' to include all DAGs.
+       - start_date_gte: Filter runs that started on or after
+        specified timestamp (ISO 8601 format, e.g., '2025-04-15T13:23:49.079Z')
+                       Leave this parameter blank '' to omit this filter.
+       - start_date_lte: Filter runs that started on or before
+        specified timestamp (ISO 8601 format, e.g., '2025-04-15T13:23:49.079Z')
+                       Leave this parameter blank '' to omit this filter.
+       - states: Comma-separated list of execution states to include
+        ('failed', 'success', 'running').
+               Leave this parameter blank '' to include all states.
+   Returns:
+       Dictionary containing the filtered DAG runs data
+   """
+    json_params = {}
+    if dag_ids:
+        dag_ids = dag_ids.split(',')
+        json_params['dag_ids'] = dag_ids
+    if states:
+        states = states.split(',')
+        json_params['states'] = states
+    if start_date_gte:
+        json_params['start_date_gte'] = start_date_gte
+    if start_date_lte:
+        json_params['start_date_lte'] = start_date_lte
+    return await make_airflow_request(url='/dags/~/dagRuns/list',
+                                      method='post', json={
+                                          'page_limit': 10000,
+                                          **json_params
+                                      })
+
+
 if __name__ == "__main__":
     mcp.run(transport="stdio")
