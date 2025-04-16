@@ -6,7 +6,8 @@ import os
 mcp = FastMCP("Airflow")
 
 
-async def make_airflow_request(url: str, **kwargs) -> dict[str, Any] | None:
+async def make_airflow_request(url: str, method: str = 'get',
+                               **kwargs) -> dict[str, Any] | None:
     headers = {
         'Content-Type': 'application/json'
     }
@@ -18,7 +19,8 @@ async def make_airflow_request(url: str, **kwargs) -> dict[str, Any] | None:
                                                    "airflow"))
     async with httpx.AsyncClient(auth=auth) as client:
         try:
-            response = await client.get(base_api + url,
+            req_method = getattr(client, method)
+            response = await req_method(base_api + url,
                                         headers=headers, timeout=30.0,
                                         **kwargs)
             response.raise_for_status()
@@ -34,17 +36,41 @@ async def get_connections():
                                       params={'limit': 1000})
 
 
-# @mcp.tool()
-# async def get_dags():
-#     """Fetch all available Airflow DAGs and return the list of them"""
-#     return await make_airflow_request(url='/dags',
-#                                       params={'limit': 1000})
+@mcp.tool()
+async def get_dags():
+    """Fetch all available Airflow DAGs and return the list of them"""
+    return await make_airflow_request(url='/dags')
 
 
 @mcp.tool()
 async def get_dag(dag_id: str):
     """Get a simplified view of the DAG that retains all essential details"""
     return await make_airflow_request(url=f'/dags/{dag_id}/details')
+
+
+@mcp.tool()
+async def get_dags_tasks(dag_id: str):
+    """Get all tasks for a DAG."""
+    return await make_airflow_request(url=f'/dags/{dag_id}/tasks')
+
+
+@mcp.tool()
+async def get_dags_task(dag_id: str, task_id: str):
+    """Get a simplified view of the task that retains all essential details"""
+    return await make_airflow_request(url=f'/dags/{dag_id}/tasks/{task_id}')
+
+
+@mcp.tool()
+async def get_all_the_runs_for_dag(dag_id: str):
+    """Get all the runs for a specific run"""
+    return await make_airflow_request(url=f'/dags/{dag_id}/dagRuns')
+
+
+@mcp.tool()
+async def trigger_dag(dag_id: str):
+    """Trigger specific dag"""
+    return await make_airflow_request(url=f'/dags/{dag_id}/dagRuns',
+                                      method='post', json={})
 
 
 if __name__ == "__main__":

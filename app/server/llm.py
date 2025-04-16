@@ -71,6 +71,14 @@ class ChatMessage:
             case 'on_chat_model_stream':
                 if event['data']['chunk'].content:
                     return cls._handle_on_chat_model_stream(event)
+            case 'on_tool_start':
+                return ChatMessage(LLMEventType.CHAT_CHUNK, cls.Sender.AI,
+                                   f'''\n\nStart Running Tool:
+```
+Data: {event['data']['input']}
+Function: {event['name']}
+```
+''')
             case 'on_tool_end':
                 return ChatMessage(LLMEventType.CHAT_CHUNK, cls.Sender.AI,
                                    '\n\nTool Output: \n```\n'
