@@ -34,3 +34,4 @@ jobs:
           context: app/mcp_servers
           push: true
           tags: hipposysai/airflow-mcp:latest,hipposysai/airflow-mcp:${{ steps.timestamp.outputs.timestamp }}
+
