@@ -6,9 +6,7 @@ from pydantic import BaseModel
 
 from app.server.llm import LLMAgent
 
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
-from langchain_mcp_adapters.tools import load_mcp_tools
+from langchain_mcp_adapters.client import MultiServerMCPClient
 
 
 chat_router = APIRouter()
@@ -19,7 +17,8 @@ class ChatRequest(BaseModel):
 
 
 def get_user_chat_config(session_id: str) -> dict:
-    return {'configurable': {'thread_id': session_id}}
+    return {'configurable': {'thread_id': session_id},
+            "recursion_limit": 100}
 
 
 @chat_router.post("/new")
@@ -44,22 +43,21 @@ async def chat(
 
     async def stream_agent_response():
         """Stream the agent's response to the client."""
-        server_params = StdioServerParameters(
-            command="python",
-            args=["/code/app/mcp_servers/mcp_airflow.py"],
-        )
+        mcps = {
+                "AirflowMCP":
+                {
+                    'command': "python",
+                    'args': ["/code/app/mcp_servers/mcp_airflow.py"],
+                    "transport": "stdio",
+                }
+            }
 
-        async with stdio_client(server_params) as (read, write):
-            async with ClientSession(read, write) as session:
-                # Initialize the connection
-                await session.initialize()
-
-                # Get tools
-                tools = await load_mcp_tools(session)
-                async with LLMAgent(tools=tools) as llm_agent:
-                    async for chat_msg in llm_agent.astream_events(
-                       chat_request.message, user_config):
-                        yield chat_msg.content
+        async with MultiServerMCPClient(mcps) as client:
+            tools = client.get_tools()
+            async with LLMAgent(tools=tools) as llm_agent:
+                async for chat_msg in llm_agent.astream_events(
+                   chat_request.message, user_config):
+                    yield chat_msg.content
 
     # Return the agent's response as a stream of JSON objects.
     return StreamingResponse(stream_agent_response(),
