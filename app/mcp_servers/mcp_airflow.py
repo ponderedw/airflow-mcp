@@ -112,5 +112,35 @@ async def get_all_the_runs(dag_ids: str = None, start_date_gte: str = None,
                                       })
 
 
+@mcp.tool()
+async def change_dags_pause_status(dag_id: str = '~',
+                                   paused_status: bool = True):
+    """
+   Change the pause status for one or more DAGs via the Airflow API.
+   Args:
+       - dag_id: The identifier of the DAG to pause/unpause
+        (e.g., 'extract_sales_data').
+                Use '~' to apply the change to all DAGs in the system.
+       - paused_status: Boolean flag to control the pause state
+        Set to True to pause the DAG(s).
+        Set to False to unpause the DAG(s).
+   Returns:
+       Dictionary containing the result of the pause/unpause operation
+       with status and details of the affected DAG(s)
+    """
+    if dag_id == '~':
+        return await make_airflow_request(url='/dags',
+                                          method='patch',
+                                          params={'dag_id_pattern': dag_id},
+                                          json={
+                                                'is_paused': paused_status
+                                            })
+    else:
+        return await make_airflow_request(url=f'/dags/{dag_id}',
+                                          method='patch', json={
+                                            'is_paused': paused_status
+                                          })
+
+
 if __name__ == "__main__":
     mcp.run(transport="stdio")
