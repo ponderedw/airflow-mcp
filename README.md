@@ -1,7 +1,14 @@
 # Airflow MCP
 
+This project implements an MCP server for Apache Airflow, enabling users to interact with their orchestration platform using natural language.
 
-## Manage Your Airflow Cluster Using LLMs with Model Context Protocol
+With a few minutes of setup, you should be able to use Claude Desktop or any MCP-enabled LLM to ask questions like:
+- "What DAGs do we have in our Airflow cluster?"
+- "What is our latest failed DAG?"
+
+And more!
+
+## About MCP and Airflow MCP
 
 The Model Context Protocol (MCP) is an open standard creating secure connections between data sources and AI applications. This repository provides a custom MCP server for Apache Airflow that transforms how teams interact with their orchestration platform through natural language.
 
@@ -18,9 +25,46 @@ The Model Context Protocol (MCP) is an open standard creating secure connections
 
 ### Prerequisites
 
+If you already have an Airflow instance and want to use our prebuilt Docker image, you only need:
 - Docker
-- Apache Airflow instance (or use our provided setup)
+- Access to your Apache Airflow instance
 - LLM access (Claude, ChatGPT, or AWS Bedrock)
+
+This repository also provides a local setup for Apache Airflow, which you can use for demo purposes.
+
+You can also build the MCP server from source, detailed below.
+
+### Quick Start - Using the Prebuilt Docker Image
+
+If you have an Airflow instance and want to use our prebuilt Docker image, simply follow these steps:
+
+
+You'll need to configure Claude Desktop to connect to your Airflow instance. If you haven't configured Claude Desktop for use with MCP before, we recommend following the [Claude Desktop documentation](https://modelcontextprotocol.io/quickstart/user).
+
+Here are the steps to configure Claude Desktop to connect to your Airflow instance, using our prebuilt Docker image:
+
+- Open Claude Desktop
+- Go to Settings → Developer tab
+- Edit the MCP config with:
+```json
+{
+   "mcpServers": {
+         "airflow_mcp": {
+            "command": "docker",
+            "args": ["run", "-i", "--rm", "-e", "airflow_api_url", "-e", "airflow", "-e", "airflow", "hipposysai/airflow-mcp:latest"],
+            "env": {
+               "airflow_api_url": "http://host.docker.internal:8088/api/v1",
+               "airflow_username": "airflow",
+               "airflow_password": "airflow"
+            }
+         }
+   }
+}
+```
+
+
+
+
 
 ### Running MCP Locally with Claude Desktop
 
@@ -34,7 +78,20 @@ The Model Context Protocol (MCP) is an open standard creating secure connections
    just airflow
    ```
 
+   This will start an Airflow instance on port 8088, with username `airflow` and password `airflow`.
+
+   You can access Airflow at http://localhost:8088/ and see multiple DAGs configured:
+
+   ![Airflow DAGs](docs/images/airflow_dags.jpg).
+
+   These DAGs have complex dependencies, some running on a schedule and some using Airflow's Dataset functionality.
+
 3. Configure Claude Desktop:
+
+   You'll need to configure Claude Desktop to connect to your Airflow instance. If you haven't configured Claude Desktop for use with MCP before, we recommend following the [Claude Desktop documentation](https://modelcontextprotocol.io/quickstart/user).
+
+   Here are the steps to configure Claude Desktop to connect to your Airflow instance:
+
    - Open Claude Desktop
    - Go to Settings → Developer tab
    - Edit the MCP config with:
