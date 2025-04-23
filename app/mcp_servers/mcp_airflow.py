@@ -7,6 +7,7 @@ mcp = FastMCP("Airflow")
 
 
 async def make_airflow_request(url: str, method: str = 'get',
+                               return_text: bool = False,
                                **kwargs) -> dict[str, Any] | None:
     headers = {
         'Content-Type': 'application/json'
@@ -24,7 +25,7 @@ async def make_airflow_request(url: str, method: str = 'get',
                                         headers=headers, timeout=30.0,
                                         **kwargs)
             response.raise_for_status()
-            return response.json()
+            return response.json() if not return_text else response.text
         except Exception as e:
             return e
 
@@ -140,6 +141,25 @@ async def change_dags_pause_status(dag_id: str = '~',
                                           method='patch', json={
                                             'is_paused': paused_status
                                           })
+
+
+@mcp.tool()
+async def get_dags_script(file_token: str):
+    """
+    Retrieve the source code of a specific DAG via the Airflow API.
+
+    Args:
+        - file_token: A unique identifier token for the DAG script file,
+                     obtained from the get_dag(dag_id) method response.
+                    This token provides secure access to the DAG's source code.
+                    Before using this function, call get_dag(dag_id) method.
+
+    Returns:
+        Text containing the DAG's source code and related metadata.
+        The response typically includes the full script that defines the DAG.
+    """
+    return await make_airflow_request(url=f'/dagSources/{file_token}',
+                                      return_text=True)
 
 
 if __name__ == "__main__":
