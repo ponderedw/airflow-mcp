@@ -15,4 +15,4 @@ langchain_openai
 mcp[cli]
 httpx
 psycopg[binary]
-langchain_mcp_adapters
+langchain_mcp_adapters==0.1.1

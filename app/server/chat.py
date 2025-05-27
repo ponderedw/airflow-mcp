@@ -36,29 +36,38 @@ async def chat(
     if 'chat_session_id' not in request.session:
         await new_chat(request)
     session_id = request.session['chat_session_id']
-    print('sldnsfnlksdf')
-    print(session_id)
     # Get the user chat configuration and the LLM agent.
     user_config = get_user_chat_config(session_id)
-
-    async def stream_agent_response():
-        """Stream the agent's response to the client."""
-        mcps = {
-                "AirflowMCP":
-                {
-                    'command': "python",
-                    'args': ["/code/app/mcp_servers/mcp_airflow.py"],
-                    "transport": "stdio",
+    # mcps = {
+    #             "AirflowMCP":
+    #             {
+    #                 'command': "python",
+    #                 'args': ["/code/app/mcp_servers/mcp_airflow.py"],
+    #                 "transport": "stdio",
+    #             }
+    #         }
+    mcps = {
+                "AirflowMCP": {
+                    "url": "http://mcp_sse_server:8000/sse",
+                    "transport": "sse"
                 }
             }
 
-        async with MultiServerMCPClient(mcps) as client:
-            tools = client.get_tools()
-            async with LLMAgent(tools=tools) as llm_agent:
-                async for chat_msg in llm_agent.astream_events(
-                   chat_request.message, user_config):
-                    yield chat_msg.content
+    client = MultiServerMCPClient(mcps)
+    tools = await client.get_tools()
+
+    async def stream_agent_response():
+        async with LLMAgent(tools=tools) as llm_agent:
+            async for chat_msg in llm_agent.astream_events(
+                 chat_request.message, user_config):
+                yield chat_msg.content
 
     # Return the agent's response as a stream of JSON objects.
     return StreamingResponse(stream_agent_response(),
                              media_type='application/json')
+
+# "mcp_server": {
+#     "url": "http://mcp_sse_server:8000/sse",
+#     "transport": "sse"
+# }
+

@@ -17,6 +17,22 @@ services:
       - 8080:8080
     restart: always
     networks:
+      data-lake-network:
+
+  mcp_sse_server:
+    container_name: mcp_sse_server
+    build:
+      context: app/mcp_servers
+      dockerfile: Dockerfile
+    # volumes:
+    #   - ./:/code
+    ports:
+      - 8000:8000
+    restart: always
+    environment:
+      TRANSPORT_TYPE: sse
+      POST_MODE: 'true'
+    networks:
       data-lake-network: 
 
 networks:

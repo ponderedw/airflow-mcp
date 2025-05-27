@@ -152,7 +152,8 @@ class LLMAgent:
             self._llm,
             tools,
             checkpointer=checkpointer,
-            state_modifier=SystemMessage(PROMPT_MESSAGE),
+            # state_modifier=SystemMessage(PROMPT_MESSAGE),
+            prompt=PROMPT_MESSAGE
         )
 
         return self

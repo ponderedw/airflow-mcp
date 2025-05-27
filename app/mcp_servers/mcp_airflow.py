@@ -1,9 +1,29 @@
 from mcp.server.fastmcp import FastMCP
 import httpx
-from typing import Any
+from typing import Any, Callable
 import os
 
 mcp = FastMCP("Airflow")
+
+
+POST_MODE = os.environ.get('POST_MODE', 'false').lower() == 'true'
+
+
+def filtered_tool(func: Callable) -> Callable:
+    """
+    Custom decorator that conditionally registers tools based on POST_MODE:
+    - If POST_MODE is False/None: Only register functions starting with 'get'
+    - If POST_MODE is True: Register all tools
+    """
+    function_name = func.__name__
+    # If POST_MODE is True, register all tools
+    if POST_MODE:
+        return mcp.tool()(func)
+    # If POST_MODE is False/None, only register functions starting with 'get'
+    if function_name.startswith('get'):
+        return mcp.tool()(func)
+    # Return the original function without registering it as a tool
+    return func
 
 
 async def make_airflow_request(url: str, method: str = 'get',
@@ -30,51 +50,51 @@ async def make_airflow_request(url: str, method: str = 'get',
             return e
 
 
-@mcp.tool()
+@filtered_tool
 async def get_connections():
     """Fetch all available Airflow connections via the Airflow REST API"""
     return await make_airflow_request(url='/connections',
                                       params={'limit': 1000})
 
 
-@mcp.tool()
+@filtered_tool
 async def get_dags():
     """Fetch all available Airflow DAGs and return the list of them"""
     return await make_airflow_request(url='/dags')
 
 
-@mcp.tool()
+@filtered_tool
 async def get_dag(dag_id: str):
     """Get a simplified view of the DAG that retains all essential details"""
     return await make_airflow_request(url=f'/dags/{dag_id}/details')
 
 
-@mcp.tool()
+@filtered_tool
 async def get_dags_tasks(dag_id: str):
     """Get all tasks for a DAG."""
     return await make_airflow_request(url=f'/dags/{dag_id}/tasks')
 
 
-@mcp.tool()
+@filtered_tool
 async def get_dags_task(dag_id: str, task_id: str):
     """Get a simplified view of the task that retains all essential details"""
     return await make_airflow_request(url=f'/dags/{dag_id}/tasks/{task_id}')
 
 
-@mcp.tool()
+@filtered_tool
 async def get_all_the_runs_for_dag(dag_id: str):
     """Get all the runs for a specific run"""
     return await make_airflow_request(url=f'/dags/{dag_id}/dagRuns')
 
 
-@mcp.tool()
+@filtered_tool
 async def trigger_dag(dag_id: str):
     """Trigger specific dag"""
     return await make_airflow_request(url=f'/dags/{dag_id}/dagRuns',
                                       method='post', json={})
 
 
-@mcp.tool()
+@filtered_tool
 async def get_all_the_runs(dag_ids: str = None, start_date_gte: str = None,
                            start_date_lte: str = None, states: str = None):
     """
@@ -113,7 +133,7 @@ async def get_all_the_runs(dag_ids: str = None, start_date_gte: str = None,
                                       })
 
 
-@mcp.tool()
+@filtered_tool
 async def change_dags_pause_status(dag_id: str = '~',
                                    paused_status: bool = True):
     """
@@ -143,7 +163,7 @@ async def change_dags_pause_status(dag_id: str = '~',
                                           })
 
 
-@mcp.tool()
+@filtered_tool
 async def get_dags_script(file_token: str):
     """
     Retrieve the source code of a specific DAG via the Airflow API.
@@ -163,4 +183,8 @@ async def get_dags_script(file_token: str):
 
 
 if __name__ == "__main__":
-    mcp.run(transport="stdio")
+    transport_type = os.environ.get('TRANSPORT_TYPE')
+    if transport_type == 'sse':
+        mcp.run(transport="sse")
+    else:
+        mcp.run(transport="stdio")
