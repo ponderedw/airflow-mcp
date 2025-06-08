@@ -1,12 +1,52 @@
 from mcp.server.fastmcp import FastMCP
 import httpx
+from fastapi import FastAPI, HTTPException, Request
 from typing import Any, Callable
 import os
+from starlette.status import HTTP_401_UNAUTHORIZED
+import uvicorn
 
-mcp = FastMCP("Airflow")
+mcp = FastMCP("Airflow", port='8000', description='Airflow MCP')
+app = FastAPI(title="MCP Auth Test Server")
 
 
 POST_MODE = os.environ.get('POST_MODE', 'false').lower() == 'true'
+
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    """
+    Authentication middleware to verify JWT tokens.
+
+    Args:
+        request: FastAPI request object
+        call_next: Next middleware or endpoint function
+
+    Returns:
+        Response from the next middleware or endpoint
+
+    Raises:
+        HTTPException: If authentication fails
+    """
+    # Check for Authorization header
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="Missing or invalid authorization header"
+        )
+
+    # Extract and verify token
+    token = auth_header.split(" ")[1]
+    if token == os.environ.get('TOKEN'):
+        print("[SERVER] Authentication successful")
+        response = await call_next(request)
+    else:
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
+        )
+    return response
 
 
 def filtered_tool(func: Callable) -> Callable:
@@ -181,10 +221,16 @@ async def get_dags_script(file_token: str):
     return await make_airflow_request(url=f'/dagSources/{file_token}',
                                       return_text=True)
 
+if os.environ.get('TOKEN'):
+    app.mount("/", mcp.sse_app())
+
 
 if __name__ == "__main__":
-    transport_type = os.environ.get('TRANSPORT_TYPE')
-    if transport_type == 'sse':
-        mcp.run(transport="sse")
+    if os.environ.get('TOKEN'):
+        uvicorn.run(app, host="0.0.0.0", port=8000)
     else:
-        mcp.run(transport="stdio")
+        transport_type = os.environ.get('TRANSPORT_TYPE')
+        if transport_type == 'sse':
+            mcp.run(transport="sse")
+        else:
+            mcp.run(transport="stdio")

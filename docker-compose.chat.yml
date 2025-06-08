@@ -21,6 +21,8 @@ services:
 
   mcp_sse_server:
     container_name: mcp_sse_server
+    env_file:
+      - .env
     build:
       context: app/mcp_servers
       dockerfile: Dockerfile
@@ -31,7 +33,7 @@ services:
     restart: always
     environment:
       TRANSPORT_TYPE: sse
-      POST_MODE: 'true'
+      POST_MODE: 'false'
     networks:
       data-lake-network: 
 

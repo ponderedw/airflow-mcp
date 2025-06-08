@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from app.server.llm import LLMAgent
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
+import os
 
 
 chat_router = APIRouter()
@@ -49,7 +50,9 @@ async def chat(
     mcps = {
                 "AirflowMCP": {
                     "url": "http://mcp_sse_server:8000/sse",
-                    "transport": "sse"
+                    "transport": "sse",
+                    "headers": {"Authorization": f"""Bearer {
+                        os.environ.get('MCP_TOKEN')}"""}
                 }
             }
 
