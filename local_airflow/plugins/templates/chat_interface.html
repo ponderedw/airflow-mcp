@@ -4,9 +4,6 @@
   <div class="chat-header">
     <h1><i class="fa fa-comments"></i> AI Assistant</h1>
     <div class="chat-controls">
-      <button id="clearChat" class="btn btn-sm btn-warning">
-        <i class="fa fa-trash"></i> Clear Chat
-      </button>
       <button id="newChat" class="btn btn-sm btn-primary">
         <i class="fa fa-plus"></i> New Chat
       </button>
@@ -465,6 +462,7 @@ class AirflowChatClient {
     this.conversationId = null;
     this.isConnected = true;
     this.currentStream = null;
+    this.isStreaming = false; // Track streaming state
     
     this.initializeElements();
     this.attachEventListeners();
@@ -475,7 +473,6 @@ class AirflowChatClient {
     this.chatInput = document.getElementById('chatInput');
     this.sendButton = document.getElementById('sendButton');
     this.chatMessages = document.getElementById('chatMessages');
-    this.clearChatBtn = document.getElementById('clearChat');
     this.newChatBtn = document.getElementById('newChat');
     this.charCount = document.querySelector('.char-count');
     this.status = document.getElementById('connectionStatus');
@@ -498,8 +495,6 @@ class AirflowChatClient {
       this.autoResize();
     });
     
-    // Control buttons
-    this.clearChatBtn.addEventListener('click', () => this.clearChat());
     this.newChatBtn.addEventListener('click', () => this.newChat());
   }
   
@@ -518,7 +513,8 @@ class AirflowChatClient {
   
   updateSendButton() {
     const hasText = this.chatInput.value.trim().length > 0;
-    this.sendButton.disabled = !hasText || !this.isConnected;
+    // Disable button if no text, not connected, or currently streaming
+    this.sendButton.disabled = !hasText || !this.isConnected || this.isStreaming;
   }
   
   autoResize() {
@@ -531,9 +527,17 @@ class AirflowChatClient {
     this.status.className = `status ${className}`;
   }
   
+  setStreaming(streaming) {
+    this.isStreaming = streaming;
+    this.updateSendButton();
+  }
+  
   async sendMessage() {
     const message = this.chatInput.value.trim();
-    if (!message || !this.isConnected) return;
+    if (!message || !this.isConnected || this.isStreaming) return;
+    
+    // Set streaming state to true
+    this.setStreaming(true);
     
     // Initialize conversation if not exists
     if (!this.conversationId) {
@@ -556,6 +560,7 @@ class AirflowChatClient {
       } catch (error) {
         console.error('Failed to initialize chat:', error);
         this.setStatus('Failed to initialize chat', 'error');
+        this.setStreaming(false); // Re-enable button on error
         return;
       }
     }
@@ -574,7 +579,8 @@ class AirflowChatClient {
     
     try {
       this.setStatus('Sending...', 'connecting');
-      
+      console.log('this.conversationId')
+      console.log(this.conversationId)
       const response = await fetch("{{ url_for('AirflowChatView.chat_api') }}", {
         method: 'POST',
         headers: {
@@ -602,6 +608,9 @@ class AirflowChatClient {
       this.removeTypingIndicator(typingElement);
       this.addMessage(`Sorry, I encountered an error: ${error.message}`, 'assistant', true);
       this.setStatus('Error', 'error');
+    } finally {
+      // Always re-enable button when done
+      this.setStreaming(false);
     }
   }
   
@@ -634,9 +643,9 @@ class AirflowChatClient {
             try {
               const parsed = JSON.parse(data);
               
-              if (parsed.conversation_id && !this.conversationId) {
-                this.conversationId = parsed.conversation_id;
-              }
+            //   if (parsed.conversation_id && !this.conversationId) {
+            //     this.conversationId = parsed.conversation_id;
+            //   }
               
               if (parsed.content) {
                 assistantMessage += parsed.content;
@@ -791,7 +800,7 @@ class AirflowChatClient {
     .then(response => response.json())
     .then(data => {
       if (data.conversation_id) {
-        this.conversationId = data.conversation_id;
+        // this.conversationId = data.conversation_id;
         this.clearChat();
         this.setStatus('New chat initialized', 'ready');
       } else {

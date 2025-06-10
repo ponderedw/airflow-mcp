@@ -83,10 +83,11 @@ class LLMChatAgent:
             return False, None
     
     def stream_chat_response(self, message, conversation_id=None):
+        print(f'sessions: {self.sessions}')
         """Stream response from FastAPI backend"""
         try:
-            if not conversation_id:
-                conversation_id = str(uuid.uuid4())
+            # if not conversation_id:
+            #     conversation_id = str(uuid.uuid4())
             
             # Initialize session if not already done
             if conversation_id not in self.sessions or not self.sessions[conversation_id].get('initialized'):
@@ -154,6 +155,7 @@ class LLMChatAgent:
     
     def clear_session(self, conversation_id):
         """Clear session data for a conversation"""
+        print('clear_session')
         if conversation_id in self.sessions:
             del self.sessions[conversation_id]
 
@@ -180,6 +182,7 @@ class AirflowChatView(AppBuilderBaseView):
         data = request.get_json()
         message = data.get("message", "").strip()
         conversation_id = data.get("conversation_id")
+        print(f'conversation_id: {conversation_id}')
         
         if not message:
             return jsonify({"error": "Message is required"}), 400
@@ -212,24 +215,7 @@ class AirflowChatView(AppBuilderBaseView):
                 "Access-Control-Allow-Origin": "*"
             }
         )
-    
-    @expose("/api/conversations", methods=["GET"])
-    @admin_only
-    @failure_tolerant
-    def get_conversations(self):
-        """Get conversation history"""
-        # This would typically fetch from a database
-        # For now, return empty list
-        return jsonify({"conversations": []})
-    
-    @expose("/api/conversations/<conversation_id>", methods=["DELETE"])
-    @admin_only
-    @failure_tolerant
-    def delete_conversation(self, conversation_id):
-        """Delete a conversation and clear session"""
-        # Clear the session from LLM agent
-        self.llm_agent.clear_session(conversation_id)
-        return jsonify({"message": "Conversation deleted", "conversation_id": conversation_id})
+
     
     @expose("/api/new_chat", methods=["POST"])
     @admin_only
