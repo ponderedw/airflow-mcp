@@ -27,7 +27,7 @@ jobs:
             fastapi_mcp:
               - 'app/**/*'
             airflow_plugin:
-              - 'local_airflow/plugins/**/*'
+              - 'airflow_chat/**/*'
             
 
   mcp_image:
