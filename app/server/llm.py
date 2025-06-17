@@ -81,9 +81,9 @@ Function: {event['name']}
 ''')
             case 'on_tool_end':
                 return ChatMessage(LLMEventType.CHAT_CHUNK, cls.Sender.AI,
-                                   '\n\nTool Output: \n```\n'
-                                   + event['data']['output'].content
-                                   + '\n```\n')
+                                   f'''\n\nTool Output: \n```\n
+{event['data']['output'].content}
+\n```\n''')
             # The conversation is done.
             case 'done':
                 return ChatMessage(
@@ -96,7 +96,7 @@ Function: {event['name']}
                 | 'on_chat_model_stream' | 'on_chat_model_end' | \
                     'on_chain_stream' | 'on_tool_start' | 'on_tool_end':
                 Logger().get_logger().debug('Ignoring message', event['event'])
-                return None
+                return ''
             # Unknown events.
             case _:
                 raise ValueError('Unknown event', event)
@@ -114,9 +114,10 @@ Function: {event['name']}
             Logger().get_logger().debug('Stream.tool_calls:',
                                         event['data']['chunk'].tool_calls,
                                         flush=True)
-            return None
+            return ''
         else:
-            return ChatMessage(LLMEventType.CHAT_CHUNK, cls.Sender.AI, content)
+            return ChatMessage(LLMEventType.CHAT_CHUNK, cls.Sender.AI, content
+                               if content is not None else '')
 
     def to_dict(self) -> dict:
         """Returns a dictionary representation of the message."""

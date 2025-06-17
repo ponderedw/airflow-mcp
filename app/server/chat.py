@@ -8,6 +8,8 @@ from app.server.llm import LLMAgent
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
 import os
+from datetime import datetime
+from langchain.tools import Tool
 
 
 chat_router = APIRouter()
@@ -47,17 +49,23 @@ async def chat(
     #                 "transport": "stdio",
     #             }
     #         }
+    mcp_host = os.environ.get('mcp_host', 'mcp_sse_server:8000')
     mcps = {
                 "AirflowMCP": {
-                    "url": "http://mcp_sse_server:8000/sse",
+                    "url": f"http://{mcp_host}/sse",
                     "transport": "sse",
                     "headers": {"Authorization": f"""Bearer {
                         os.environ.get('MCP_TOKEN')}"""}
                 }
             }
+    datetime_tool = Tool(
+        name="Datetime",
+        func=lambda x: datetime.now().isoformat(),
+        description="Returns the current datetime",
+    )
 
     client = MultiServerMCPClient(mcps)
-    tools = await client.get_tools()
+    tools = await client.get_tools() + [datetime_tool]
 
     async def stream_agent_response():
         async with LLMAgent(tools=tools) as llm_agent:

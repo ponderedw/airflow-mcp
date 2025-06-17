@@ -14,7 +14,7 @@ COPY ./requirements-dev.txt /code/requirements-dev.txt
 # DEV/PROD: If you don't need the dev dependencies, change to `requirements-server.txt`
 RUN pip install --no-cache-dir --upgrade -r /code/requirements-dev.txt
 
-COPY ./ /code
+COPY ./app/ /code/app
 
 ENV PYTHONPATH "${PYTHONPATH}:/code:/code/app"
 
