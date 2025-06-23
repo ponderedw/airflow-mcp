@@ -1,0 +1,60 @@
+---
+
+version: "3.5"
+
+services:
+  chat_fastapi:
+    image: hipposysai/airflow-mcp-fastapi:latest
+    container_name: chat_fastapi
+    env_file:
+      - prod.env
+    ports:
+      - "8080:8080"
+    networks:
+      - prod-network
+  chat_mcp:
+    image: hipposysai/airflow-mcp:latest
+    environment:
+      TRANSPORT_TYPE: sse
+      POST_MODE: 'false'
+    container_name: chat_mcp
+    env_file:
+      - prod.env
+    ports:
+      - "8081:8000"
+    networks:
+      - prod-network
+  chat_postgres:
+    image: postgres:15
+    container_name: chat_postgres
+    # ports:
+    #   - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      retries: 5
+    env_file:
+      - prod.env
+    environment:
+      PGDATA: /var/lib/postgresql/data/db-files/
+    volumes:
+      - ./prod_pgdata:/var/lib/postgresql/data/db-files
+    networks:
+      - prod-network
+  chat_ui:
+    container_name: chat_ui
+    env_file:
+      - prod.env
+    ports:
+      - "8501:8501"
+    build:
+      context: .
+      dockerfile: streamlit/.Dockerfile
+    volumes:
+      - ./streamlit:/app/streamlit
+    networks:
+      - prod-network
+
+networks:
+  prod-network:
+    driver: bridge

@@ -2,3 +2,5 @@
 pgdata
 __pycache__
 .env
+prod.env
+prod_pgdata

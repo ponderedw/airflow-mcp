@@ -1,6 +1,7 @@
 from airflow import settings
 from airflow.plugins_manager import AirflowPlugin
-from flask import Blueprint, request, jsonify, Response, stream_template
+from flask import Blueprint, request, jsonify, Response, stream_template, \
+    flash, url_for, redirect
 from flask_login import current_user
 from flask_appbuilder import expose, BaseView as AppBuilderBaseView
 from functools import wraps
@@ -195,9 +196,10 @@ def admin_only(f):
             return jsonify({"error": "Authentication required"}), 401
         
         users_roles = [role.name for role in current_user.roles]
-        approved_roles = ["Admin"]  # Adjust roles as needed
+        approved_roles = ["Admin", "AIRFLOW_AI"]  # Adjust roles as needed
         if not any(role in users_roles for role in approved_roles):
-            return jsonify({"error": "Access denied"}), 403
+            flash("You do not have permission to access this page.", "danger")
+            return redirect(url_for("Airflow.index"))
         return f(*args, **kwargs)
     return decorated_function
 

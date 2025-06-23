@@ -11,6 +11,7 @@ app = FastAPI(title="MCP Auth Test Server")
 
 
 POST_MODE = os.environ.get('POST_MODE', 'false').lower() == 'true'
+AIRFLOW_INSIGHTS_MODE = os.environ.get('AIRFLOW_INSIGHTS_MODE', 'false').lower() == 'true'
 
 
 @app.middleware("http")
@@ -56,8 +57,10 @@ def filtered_tool(func: Callable) -> Callable:
     - If POST_MODE is True: Register all tools
     """
     function_name = func.__name__
+    if AIRFLOW_INSIGHTS_MODE and function_name.startswith('insights'):
+        return mcp.tool()(func)
     # If POST_MODE is True, register all tools
-    if POST_MODE:
+    if POST_MODE and not function_name.startswith('insights'):
         return mcp.tool()(func)
     # If POST_MODE is False/None, only register functions starting with 'get'
     if function_name.startswith('get'):
@@ -68,12 +71,13 @@ def filtered_tool(func: Callable) -> Callable:
 
 async def make_airflow_request(url: str, method: str = 'get',
                                return_text: bool = False,
+                               api_prefix: str = '/api/v1',
                                **kwargs) -> dict[str, Any] | None:
     headers = {
         'Content-Type': 'application/json'
     }
     base_api = os.environ.get('airflow_api_url',
-                              'http://airflow-webserver:8080/api/v1')
+                              'http://airflow-webserver:8080') + api_prefix
     auth = httpx.BasicAuth(username=os.environ.get("airflow_username",
                                                    "airflow"),
                            password=os.environ.get("airflow_password",
@@ -220,6 +224,35 @@ async def get_dags_script(file_token: str):
     """
     return await make_airflow_request(url=f'/dagSources/{file_token}',
                                       return_text=True)
+
+
+@filtered_tool
+async def insights_get_dags_next_run(dag_id: str):
+    """
+    Retrieve the next scheduled or triggered run metadata of a specific DAG via the Airflow API.
+
+    Args:
+        - dag_id: A unique identifier string for the DAG whose upcoming run details are being requested.
+                  This DAG must already exist in the Airflow environment and be available for execution.
+
+    Returns:
+        A JSON-compatible dictionary containing the DAG's upcoming run metadata:
+            - start_time: The expected start time of the next DAG run.
+            - end_time: The expected end time of the next DAG run.
+            - duration: Estimated duration between the start and end of the run.
+            - description: A textual description of the DAG's triggering mechanism,
+                           which may describe a schedule, dataset dependency chain,
+                           or custom trigger configuration.
+            - run_type: The type of trigger for the next DAG run.
+                        This can be either 'scheduled' or 'dataset/trigger'.
+        
+        The information allows users to understand when and how the DAG is expected to execute next.
+        Important Note: If the predicted run is not scheduled (i.e., it is triggered by a dataset or custom trigger), please be aware that the prediction may be inaccurate, as it is based solely on metadata from previous runs.
+    """
+    return await make_airflow_request(url='/schedule_insights/get_next_future_run_json',
+                                      params={'dag_id': dag_id},
+                                      return_text=True,
+                                      api_prefix='')
 
 if os.environ.get('TOKEN'):
     app.mount("/", mcp.sse_app())

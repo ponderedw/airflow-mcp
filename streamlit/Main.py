@@ -9,7 +9,7 @@ if "http_session" not in st.session_state:
     st.session_state.http_session = requests.Session()
     # call /chat/new once when the session is first created
     response = st.session_state.http_session.post(
-        "http://fastapi:8080/chat/new",
+        "http://chat_fastapi:8080/chat/new",
         headers={"x-access-token":
                  os.environ.get('FAST_API_ACCESS_SECRET_TOKEN')}
     )
@@ -18,7 +18,7 @@ if "http_session" not in st.session_state:
 
 
 def get_chat_response(prompt):
-    url = "http://fastapi:8080/chat/ask/"
+    url = "http://chat_fastapi:8080/chat/ask/"
     start_time = datetime.datetime.now()
     with st.session_state.http_session.post(
             url,

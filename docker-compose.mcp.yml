@@ -19,6 +19,7 @@ services:
     environment:
       TRANSPORT_TYPE: sse
       POST_MODE: 'false'
+      AIRFLOW_INSIGHTS_MODE: 'true'
     networks:
       data-lake-network: 
 

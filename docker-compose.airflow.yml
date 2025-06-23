@@ -12,7 +12,7 @@ x-airflow-common:
     - local_airflow/common-airflow.env
   volumes:
     - ./local_airflow/dags:/opt/airflow/dags
-    - ./local_airflow/plugins:/opt/airflow/plugins
+    - ./airflow_chat/plugins:/opt/airflow/plugins
 
 x-airflow_depends_on:
   &airflow-depends-on
@@ -32,7 +32,7 @@ services:
   redis:
     image: 'redis:3.2.10'
     networks:
-      data-lake-network: 
+      - data-lake-network
 
   scheduler:
     <<: [*airflow-common,*airflow-depends-on]
@@ -40,7 +40,7 @@ services:
     command: scheduler
     restart: on-failure
     networks:
-      data-lake-network: 
+      - data-lake-network 
     ports:
       - "8793:8793"
 
@@ -50,7 +50,7 @@ services:
     restart: always
     command: webserver
     networks:
-      data-lake-network: 
+      - data-lake-network 
     ports:
       - "8088:8080"
     healthcheck:
@@ -70,15 +70,16 @@ services:
         chown -R "${AIRFLOW_UID}:0" /sources/{logs,dags,plugins}
         exec /entrypoint airflow version
     networks:
-      data-lake-network: 
+      - data-lake-network
   worker:
     <<: [*airflow-common,*airflow-depends-on]
     container_name: airflow-worker
     command: celery worker
     restart: on-failure
     networks:
-      data-lake-network: 
+      - data-lake-network
 
 
 networks:
-  data-lake-network: 
+  data-lake-network:
+    driver: bridge
