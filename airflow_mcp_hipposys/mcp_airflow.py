@@ -79,7 +79,7 @@ async def make_airflow_request(url: str, method: str = 'get',
     airflow_assistent_ai_conn = os.environ.get('airflow_assistent_ai_conn')
     if airflow_assistent_ai_conn:
         authentication, base_api = airflow_assistent_ai_conn.split('@')
-        username, password = authentication.split(':')
+        username, password = authentication.split(':', 1)
     else:
         base_api = os.environ.get('airflow_api_url',
                                   'http://airflow-webserver:8080')
