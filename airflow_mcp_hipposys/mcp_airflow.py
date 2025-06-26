@@ -76,7 +76,7 @@ async def make_airflow_request(url: str, method: str = 'get',
     headers = {
         'Content-Type': 'application/json'
     }
-    airflow_assistent_ai_conn = os.environ.get('airflow_assistent_ai_conn')
+    airflow_assistent_ai_conn = os.environ.get('AIRFLOW_ASSISTENT_AI_CONN')
     if airflow_assistent_ai_conn is not None:
         authentication, base_api = airflow_assistent_ai_conn.split('@')
         username, password = authentication.split(':', 1)
