@@ -1,22 +1,22 @@
 [tool.poetry]
-name = "airflow-chat"
+name = "airflow-mcp-hipposys"
 version = "0.1.0a1"
-description = "An Apache Airflow plugin that enables AI-powered chat interactions with your Airflow instance through MCP integration and an intuitive UI."
+description = "An MCP server for Apache Airflow that enables non-technical users to interact with Apache Airflow workflows through natural language."
 license = "MIT"
 authors = ["Hipposys"]
-readme = "airflow_chat/plugins/README.md"
+readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-apache-airflow = "^2.4.0"
-SQLAlchemy = ">=1.4.0"
-
-[tool.poetry.plugins."airflow.plugins"]
-airflow-chat-plugin = "airflow_chat.plugins.airflow_chat:AirflowChatPlugin"
+mcp = {extras = ["cli"], version = "1.6.0"}
+httpx = "0.28.1"
+fastapi = "0.115.12"
+uvicorn = "0.34.3"
+starlette = "0.46.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.urls]
-homepage = "https://github.com/hipposys-ltd/airflow-schedule-insights"
+homepage = "https://github.com/hipposys-ltd/airflow-mcp"

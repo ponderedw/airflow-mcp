@@ -1,1 +1,0 @@
-# Airflow Chat Plugin
