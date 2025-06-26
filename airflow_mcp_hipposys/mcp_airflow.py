@@ -77,7 +77,8 @@ async def make_airflow_request(url: str, method: str = 'get',
         'Content-Type': 'application/json'
     }
     base_api = os.environ.get('airflow_api_url',
-                              'http://airflow-webserver:8080') + api_prefix
+                              'http://airflow-webserver:8080') \
+                         .replace('/api/v1', '') + api_prefix
     auth = httpx.BasicAuth(username=os.environ.get("airflow_username",
                                                    "airflow"),
                            password=os.environ.get("airflow_password",
@@ -258,7 +259,7 @@ if os.environ.get('TOKEN'):
     app.mount("/", mcp.sse_app())
 
 
-if __name__ == "__main__":
+def main():
     if os.environ.get('TOKEN'):
         uvicorn.run(app, host="0.0.0.0", port=8000)
     else:
@@ -267,3 +268,7 @@ if __name__ == "__main__":
             mcp.run(transport="sse")
         else:
             mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()
