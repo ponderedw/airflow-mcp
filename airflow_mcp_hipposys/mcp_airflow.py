@@ -76,13 +76,18 @@ async def make_airflow_request(url: str, method: str = 'get',
     headers = {
         'Content-Type': 'application/json'
     }
-    base_api = os.environ.get('airflow_api_url',
-                              'http://airflow-webserver:8080') \
-                         .replace('/api/v1', '') + api_prefix
-    auth = httpx.BasicAuth(username=os.environ.get("airflow_username",
-                                                   "airflow"),
-                           password=os.environ.get("airflow_password",
-                                                   "airflow"))
+    airflow_assistent_ai_conn = os.environ.get('airflow_assistent_ai_conn')
+    if airflow_assistent_ai_conn:
+        authentication, base_api = airflow_assistent_ai_conn.split('@')
+        username, password = authentication.split(':')
+    else:
+        base_api = os.environ.get('airflow_api_url',
+                                  'http://airflow-webserver:8080')
+        username = os.environ.get("airflow_username",  "airflow")
+        password = os.environ.get("airflow_password",  "airflow")
+    base_api = base_api.replace('/api/v1', '') + api_prefix
+    auth = httpx.BasicAuth(username=username,
+                           password=password)
     async with httpx.AsyncClient(auth=auth) as client:
         try:
             req_method = getattr(client, method)
