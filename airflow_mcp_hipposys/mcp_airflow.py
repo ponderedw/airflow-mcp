@@ -82,9 +82,13 @@ async def make_airflow_request(url: str, method: str = 'get',
         username, password = authentication.split(':', 1)
     else:
         base_api = os.environ.get('airflow_api_url',
-                                  'http://airflow-webserver:8080')
-        username = os.environ.get("airflow_username",  "airflow")
-        password = os.environ.get("airflow_password",  "airflow")
+                                  'http://localhost:8080')
+        username = os.environ.get(
+            "airflow_username",
+            os.environ.get('_AIRFLOW_WWW_USER_USERNAME', "airflow"))
+        password = os.environ.get(
+            "airflow_password",
+            os.environ.get('_AIRFLOW_WWW_USER_PASSWORD', "airflow"))
     base_api = base_api.replace('/api/v1', '') + api_prefix
     auth = httpx.BasicAuth(username=username,
                            password=password)
@@ -265,7 +269,8 @@ if os.environ.get('TOKEN'):
 
 
 def main():
-    if os.environ.get('TOKEN'):
+    if os.environ.get('TOKEN') and \
+       os.environ.get('TRANSPORT_TYPE', 'stdio') != 'stdio':
         uvicorn.run(app, host="0.0.0.0", port=8000)
     else:
         transport_type = os.environ.get('TRANSPORT_TYPE')
