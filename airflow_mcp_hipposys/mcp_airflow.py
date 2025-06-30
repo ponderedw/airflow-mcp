@@ -44,14 +44,15 @@ async def auth_middleware(request: Request, call_next):
         try:
             print("[SERVER] Authentication successful")
             response = await call_next(request)
+            return response
         except Exception as e:
             print(e)
+            raise
     else:
         raise HTTPException(
             status_code=HTTP_401_UNAUTHORIZED,
             detail="Invalid token"
         )
-    return response
 
 
 def filtered_tool(func: Callable) -> Callable:
