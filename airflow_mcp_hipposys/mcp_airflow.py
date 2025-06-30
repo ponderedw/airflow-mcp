@@ -11,7 +11,8 @@ app = FastAPI(title="MCP Auth Test Server")
 
 
 POST_MODE = os.environ.get('POST_MODE', 'false').lower() == 'true'
-AIRFLOW_INSIGHTS_MODE = os.environ.get('AIRFLOW_INSIGHTS_MODE', 'false').lower() == 'true'
+AIRFLOW_INSIGHTS_MODE = os.environ.get('AIRFLOW_INSIGHTS_MODE',
+                                       'false').lower() == 'true'
 
 
 @app.middleware("http")
@@ -40,8 +41,11 @@ async def auth_middleware(request: Request, call_next):
     # Extract and verify token
     token = auth_header.split(" ")[1]
     if token == os.environ.get('TOKEN'):
-        print("[SERVER] Authentication successful")
-        response = await call_next(request)
+        try:
+            print("[SERVER] Authentication successful")
+            response = await call_next(request)
+        except Exception as e:
+            print(e)
     else:
         raise HTTPException(
             status_code=HTTP_401_UNAUTHORIZED,
@@ -264,13 +268,11 @@ async def insights_get_dags_next_run(dag_id: str):
                                       return_text=True,
                                       api_prefix='')
 
-if os.environ.get('TOKEN'):
-    app.mount("/", mcp.sse_app())
-
 
 def main():
     if os.environ.get('TOKEN') and \
-       os.environ.get('TRANSPORT_TYPE', 'stdio') != 'stdio':
+       os.environ.get('TRANSPORT_TYPE', 'stdio') == 'sse':
+        app.mount("/", mcp.sse_app())
         uvicorn.run(app, host="0.0.0.0", port=8000)
     else:
         transport_type = os.environ.get('TRANSPORT_TYPE')
