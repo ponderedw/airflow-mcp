@@ -155,6 +155,65 @@ Here are the steps to configure Claude Desktop to connect to your Airflow instan
 - "What operators are used by the transform_forecast_attendance DAG?"
 - "Has the transform_forecast_attendance DAG ever completed successfully?"
 
+## Running MCP with LangChain
+
+You can use `from langchain_mcp_adapters.client import MultiServerMCPClient` in order to add our Airflow MCP as one of your tools in your LangChain app.
+
+### Option 1: Separate Container (SSE Transport)
+
+If you run our Airflow MCP as a separate container, use SSE transport:
+
+```python
+mcp_host = os.environ.get('mcp_host', 'mcp_sse_server:8000')
+mcps = {
+    "AirflowMCP": {
+        "url": f"http://{mcp_host}/sse",
+        "transport": "sse",
+        "headers": {"Authorization": f"""Bearer {
+            os.environ.get('MCP_TOKEN')}"""}
+    }
+}
+```
+
+### Option 2: Embedded Server (STDIO Transport)
+
+If you want to run our MCP server as part of the LangChain code, without any outside code, use STDIO and make sure you install our library first (`airflow-mcp-hipposys = "0.1.0a11"`):
+
+```python
+mcps = {
+    "AirflowMCP":
+    {
+        'command': "python",
+        'args': ["-m", "airflow_mcp_hipposys.mcp_airflow"],
+        "transport": "stdio",
+        'env': {k: v for k, v in {
+            'AIRFLOW_ASSISTENT_AI_CONN': os.getenv(
+                'AIRFLOW_ASSISTENT_AI_CONN'),
+            'airflow_api_url': os.getenv('airflow_api_url'),
+            'airflow_username': os.getenv('airflow_username'),
+            'airflow_password': os.getenv('airflow_password'),
+            'AIRFLOW_INSIGHTS_MODE':
+                os.getenv('AIRFLOW_INSIGHTS_MODE'),
+            'POST_MODE': os.getenv('POST_MODE'),
+            'TRANSPORT_TYPE': 'stdio',
+            '_AIRFLOW_WWW_USER_USERNAME':
+                os.getenv('_AIRFLOW_WWW_USER_USERNAME'),
+            '_AIRFLOW_WWW_USER_PASSWORD':
+                os.getenv('_AIRFLOW_WWW_USER_PASSWORD')
+        }.items() if v is not None}
+    }
+}
+```
+
+### Using the Tools
+
+Then in both cases, pass it to the tools:
+
+```python
+client = MultiServerMCPClient(mcps)
+tools = await client.get_tools()
+```
+
 ## 🤝 Contributing
 
 We enthusiastically invite the community to contribute to this open-source initiative! Whether you're interested in:
@@ -171,5 +230,4 @@ Please feel free to submit pull requests or open issues on our GitHub repository
 
 - [GitHub Repository](https://github.com/hipposys-ltd/airflow-mcp)
 - [Docker Repository](https://hub.docker.com/repository/docker/hipposysai/airflow-mcp/general)
-
 ---
