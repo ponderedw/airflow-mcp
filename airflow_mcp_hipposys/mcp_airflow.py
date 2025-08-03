@@ -6,7 +6,7 @@ import os
 from starlette.status import HTTP_401_UNAUTHORIZED
 import uvicorn
 
-mcp = FastMCP("Airflow", port='8000', description='Airflow MCP')
+mcp = FastMCP("Airflow", port='8000')
 app = FastAPI(title="MCP Auth Test Server")
 
 
