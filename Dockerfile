@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir poetry
 
 # Copy Poetry configuration files
 COPY pyproject.toml poetry.lock README.md ./
-COPY airflow_mcp_hipposys ./airflow_mcp_hipposys
+COPY airflow_mcp_ponder ./airflow_mcp_ponder
 
 # Install dependencies
 RUN poetry install
@@ -22,4 +22,4 @@ RUN poetry install
 EXPOSE 8000
 
 # Run with Poetry
-CMD ["poetry", "run", "python", "-m", "airflow_mcp_hipposys.mcp_airflow"]
+CMD ["poetry", "run", "python", "-m", "airflow_mcp_ponder.mcp_airflow"]

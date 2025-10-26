@@ -22,12 +22,12 @@ jobs:
         with:
           filters: |
             mcp_image:
-              - 'airflow_mcp_hipposys/**/*'
+              - 'airflow_mcp_ponder/**/*'
               - 'poetry.lock'
               - 'pyproject.toml'
               - 'Dockerfile'
             mcp_library:
-              - 'airflow_mcp_hipposys/**/*'
+              - 'airflow_mcp_ponder/**/*'
               - 'poetry.lock'
               - 'pyproject.toml'
             
@@ -62,7 +62,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: hipposysai/airflow-mcp:latest,hipposysai/airflow-mcp:${{ steps.timestamp.outputs.timestamp }}
+          tags: pondered/airflow-mcp:latest,pondered/airflow-mcp:${{ steps.timestamp.outputs.timestamp }}
           platforms: linux/amd64,linux/arm64
 
   publish_mcp_library:

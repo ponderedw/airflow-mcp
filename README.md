@@ -51,7 +51,7 @@ Here are the steps to configure Claude Desktop to connect to your Airflow instan
    "mcpServers": {
          "airflow_mcp": {
             "command": "docker",
-            "args": ["run", "-i", "--rm", "-e", "airflow_api_url", "-e", "airflow", "-e", "airflow", "hipposysai/airflow-mcp:latest"],
+            "args": ["run", "-i", "--rm", "-e", "airflow_api_url", "-e", "airflow", "-e", "airflow", "pondered/airflow-mcp:latest"],
             "env": {
                "airflow_api_url": "http://host.docker.internal:8088/api/v1",
                "airflow_username": "airflow",
@@ -70,7 +70,7 @@ Here are the steps to configure Claude Desktop to connect to your Airflow instan
 
 1. Clone this repository:
    ```
-   git clone https://github.com/hipposys-ltd/airflow-mcp
+   git clone https://github.com/ponderedw/airflow-mcp
    ```
 
 2. If you don't have a running Airflow environment, start one with:
@@ -100,7 +100,7 @@ Here are the steps to configure Claude Desktop to connect to your Airflow instan
       "mcpServers": {
           "airflow_mcp": {
               "command": "docker",
-              "args": ["run", "-i", "--rm", "-e", "airflow_api_url", "-e", "airflow", "-e", "airflow", "hipposysai/airflow-mcp:latest"],
+              "args": ["run", "-i", "--rm", "-e", "airflow_api_url", "-e", "airflow", "-e", "airflow", "pondered/airflow-mcp:latest"],
               "env": {
                 "airflow_api_url": "http://host.docker.internal:8088/api/v1",
                 "airflow_username": "airflow",
@@ -177,14 +177,14 @@ mcps = {
 
 ### Option 2: Embedded Server (STDIO Transport)
 
-If you want to run our MCP server as part of the LangChain code, without any outside code, use STDIO and make sure you install our library first (`airflow-mcp-hipposys = "0.1.0a11"`):
+If you want to run our MCP server as part of the LangChain code, without any outside code, use STDIO and make sure you install our library first (`airflow-mcp-ponder = "0.1.0a11"`):
 
 ```python
 mcps = {
     "AirflowMCP":
     {
         'command': "python",
-        'args': ["-m", "airflow_mcp_hipposys.mcp_airflow"],
+        'args': ["-m", "airflow_mcp_ponder.mcp_airflow"],
         "transport": "stdio",
         'env': {k: v for k, v in {
             'AIRFLOW_ASSISTENT_AI_CONN': os.getenv(
@@ -228,6 +228,6 @@ Please feel free to submit pull requests or open issues on our GitHub repository
 
 ## 🔗 Links
 
-- [GitHub Repository](https://github.com/hipposys-ltd/airflow-mcp)
-- [Docker Repository](https://hub.docker.com/repository/docker/hipposysai/airflow-mcp/general)
+- [GitHub Repository](https://github.com/ponderedw/airflow-mcp)
+- [Docker Repository](https://hub.docker.com/repository/docker/pondered/airflow-mcp/general)
 ---
