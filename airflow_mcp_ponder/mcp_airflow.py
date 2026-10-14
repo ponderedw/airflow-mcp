@@ -1,9 +1,11 @@
 from mcp.server.fastmcp import FastMCP
 import httpx
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from typing import Any, Callable
 import os
 from starlette.status import HTTP_401_UNAUTHORIZED
+from starlette.types import ASGIApp, Receive, Scope, Send
 import uvicorn
 
 mcp = FastMCP("Airflow", port='8000')
@@ -14,45 +16,32 @@ POST_MODE = os.environ.get('POST_MODE', 'false').lower() == 'true'
 AIRFLOW_INSIGHTS_MODE = os.environ.get('AIRFLOW_INSIGHTS_MODE',
                                        'false').lower() == 'true'
 
+_EXPECTED_TOKEN = os.environ.get('TOKEN')
 
-@app.middleware("http")
-async def auth_middleware(request: Request, call_next):
-    """
-    Authentication middleware to verify JWT tokens.
 
-    Args:
-        request: FastAPI request object
-        call_next: Next middleware or endpoint function
+class AuthMiddleware:
+    """Pure ASGI auth middleware — safe for SSE streaming responses."""
 
-    Returns:
-        Response from the next middleware or endpoint
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
 
-    Raises:
-        HTTPException: If authentication fails
-    """
-    # Check for Authorization header
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(
-            status_code=HTTP_401_UNAUTHORIZED,
-            detail="Missing or invalid authorization header"
-        )
-
-    # Extract and verify token
-    token = auth_header.split(" ")[1]
-    if token == os.environ.get('TOKEN'):
-        try:
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http":
+            headers = {k.lower(): v for k, v in scope.get("headers", [])}
+            auth = headers.get(b"authorization", b"").decode()
+            token = auth.removeprefix("Bearer ").strip()
+            if not auth.startswith("Bearer ") or token != _EXPECTED_TOKEN:
+                response = JSONResponse(
+                    status_code=HTTP_401_UNAUTHORIZED,
+                    content={"detail": "Missing or invalid authorization header"},
+                )
+                await response(scope, receive, send)
+                return
             print("[SERVER] Authentication successful")
-            response = await call_next(request)
-            return response
-        except Exception as e:
-            print(e)
-            raise
-    else:
-        raise HTTPException(
-            status_code=HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
-        )
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(AuthMiddleware)
 
 
 def filtered_tool(func: Callable) -> Callable:
@@ -101,12 +90,12 @@ async def make_airflow_request(url: str, method: str = 'get',
         try:
             req_method = getattr(client, method)
             response = await req_method(base_api + url,
-                                        headers=headers, timeout=30.0,
+                                        headers=headers, timeout=120.0,
                                         **kwargs)
             response.raise_for_status()
             return response.json() if not return_text else response.text
         except Exception as e:
-            return e
+            return f"{type(e).__name__}: {e}"
 
 
 @filtered_tool
