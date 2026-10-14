@@ -131,8 +131,11 @@ async def get_dags_task(dag_id: str, task_id: str):
 
 @filtered_tool
 async def get_all_the_runs_for_dag(dag_id: str):
-    """Get all the runs for a specific run"""
-    return await make_airflow_request(url=f'/dags/{dag_id}/dagRuns')
+    """Get the most recent runs for a specific DAG, newest first"""
+    return await make_airflow_request(
+        url=f'/dags/{dag_id}/dagRuns',
+        params={'order_by': '-execution_date', 'limit': 25},
+    )
 
 
 @filtered_tool
